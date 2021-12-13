@@ -10,7 +10,7 @@
 // The handled paths all begin with /debug/pprof/.
 //
 // To use pprof, link this package into your program:
-//	import _ "github.com/lesismal/llib/std/net/http/pprof"
+//	import _ "github.com/Lcfling/llib/std/net/http/pprof"
 //
 // If your application is not already running an http server, you
 // need to start one. Add "net/http" and "log" to your imports and

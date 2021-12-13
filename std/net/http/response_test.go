@@ -10,7 +10,7 @@ import (
 	"compress/gzip"
 	"crypto/rand"
 	"fmt"
-	"github.com/lesismal/llib/std/net/http/internal"
+	"github.com/Lcfling/llib/std/net/http/internal"
 	"go/token"
 	"io"
 	"net/url"

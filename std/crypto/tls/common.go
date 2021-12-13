@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lesismal/llib/std/internal/cpu"
+	"github.com/Lcfling/llib/std/internal/cpu"
 )
 
 const (

@@ -118,6 +118,7 @@ func (c *Conn) serverHandshake() error {
 
 func (hs *serverHandshakeState) handshake() error {
 	c := hs.c
+
 	if c.handshakeStatusAsync >= stateServerHandshakeHandshakeDone {
 		return nil
 	}

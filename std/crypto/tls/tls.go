@@ -22,6 +22,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/Lcfling/llib/std/crypto/sm2"
 	"net"
 	"os"
 	"strings"
@@ -400,6 +401,14 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 		if !bytes.Equal(priv.Public().(ed25519.PublicKey), pub) {
 			return fail(errors.New("tls: private key does not match public key"))
 		}
+	case *sm2.PublicKey:
+		priv, ok := cert.PrivateKey.(*sm2.PrivateKey)
+		if !ok {
+			return fail(errors.New("tls: sm2 private key type does not match public key type"))
+		}
+		if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
+			return fail(errors.New("tls: sm2 private key does not match public key"))
+		}
 	default:
 		return fail(errors.New("tls: unknown public key algorithm"))
 	}
@@ -416,7 +425,7 @@ func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 	}
 	if key, err := x509.ParsePKCS8PrivateKey(der); err == nil {
 		switch key := key.(type) {
-		case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
+		case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey, *sm2.PrivateKey:
 			return key, nil
 		default:
 			return nil, errors.New("tls: found unknown private key type in PKCS#8 wrapping")

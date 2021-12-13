@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
-	"github.com/lesismal/llib/std/net/http/internal"
+	"github.com/Lcfling/llib/std/net/http/internal"
 	"io"
 	"net"
 	"strings"

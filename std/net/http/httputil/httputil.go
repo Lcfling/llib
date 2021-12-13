@@ -7,7 +7,7 @@
 package httputil
 
 import (
-	"github.com/lesismal/llib/std/net/http/internal"
+	"github.com/Lcfling/llib/std/net/http/internal"
 	"io"
 )
 

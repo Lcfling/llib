@@ -6,8 +6,8 @@ package cookiejar_test
 
 import (
 	"fmt"
-	"github.com/lesismal/llib/std/net/http/cookiejar"
-	"github.com/lesismal/llib/std/net/http/httptest"
+	"github.com/Lcfling/llib/std/net/http/cookiejar"
+	"github.com/Lcfling/llib/std/net/http/httptest"
 	"log"
 	"net/http"
 	"net/url"

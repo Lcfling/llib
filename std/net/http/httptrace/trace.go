@@ -14,7 +14,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/lesismal/llib/std/internal/nettrace"
+	"github.com/Lcfling/llib/std/internal/nettrace"
 )
 
 // unique type to prevent assignment.

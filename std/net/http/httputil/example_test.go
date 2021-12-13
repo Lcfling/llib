@@ -6,8 +6,8 @@ package httputil_test
 
 import (
 	"fmt"
-	"github.com/lesismal/llib/std/net/http/httptest"
-	"github.com/lesismal/llib/std/net/http/httputil"
+	"github.com/Lcfling/llib/std/net/http/httptest"
+	"github.com/Lcfling/llib/std/net/http/httputil"
 	"io"
 	"log"
 	"net/http"
