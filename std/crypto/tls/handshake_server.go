@@ -13,7 +13,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"sync/atomic"
 	"time"
@@ -827,7 +826,7 @@ func (hs *serverHandshakeState) establishKeys() error {
 		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
 
 	var clientCipher, serverCipher interface{}
-	var clientHash, serverHash hash.Hash
+	var clientHash, serverHash macFunction
 
 	if hs.suite.aead == nil {
 		clientCipher = hs.suite.cipher(clientKey, clientIV, true /* for reading */)

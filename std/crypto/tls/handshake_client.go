@@ -14,7 +14,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"net"
 	"strings"
@@ -673,7 +672,7 @@ func (hs *clientHandshakeState) establishKeys() error {
 	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
 		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.hello.random, hs.serverHello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
 	var clientCipher, serverCipher interface{}
-	var clientHash, serverHash hash.Hash
+	var clientHash, serverHash macFunction
 	if hs.suite.cipher != nil {
 		clientCipher = hs.suite.cipher(clientKey, clientIV, false /* not for reading */)
 		clientHash = hs.suite.mac(clientMAC)

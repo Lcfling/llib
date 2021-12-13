@@ -160,7 +160,7 @@ type cipherSuite struct {
 	// flags is a bitmask of the suite* values, above.
 	flags  int
 	cipher func(key, iv []byte, isRead bool) interface{}
-	mac    func(key []byte) hash.Hash
+	mac    func(key []byte) macFunction
 	aead   func(key, fixedNonce []byte) aead
 }
 
@@ -248,14 +248,15 @@ func cipherAES(key, iv []byte, isRead bool) interface{} {
 }
 
 // macSHA1 returns a SHA-1 based constant time MAC.
-func macSHA1(key []byte) hash.Hash {
-	return hmac.New(newConstantTimeHash(sha1.New), key)
+func macSHA1(key []byte) macFunction {
+
+	return GMtls10MAC{hmac.New(newConstantTimeHash(sha1.New), key)}
 }
 
 // macSHA256 returns a SHA-256 based MAC. This is only supported in TLS 1.2 and
 // is currently only used in disabled-by-default cipher suites.
-func macSHA256(key []byte) hash.Hash {
-	return hmac.New(sha256.New, key)
+func macSHA256(version uint16, key []byte) macFunction {
+	return GMtls10MAC{hmac.New(sha256.New, key)}
 }
 
 type macFunction interface {
@@ -420,7 +421,7 @@ func newConstantTimeHash(h func() hash.Hash) func() hash.Hash {
 }
 
 // tls10MAC implements the TLS 1.0 MAC function. RFC 2246, section 6.2.3.
-/*type GMtls10MAC struct {
+type GMtls10MAC struct {
 	h hash.Hash
 }
 
@@ -441,7 +442,7 @@ func (s GMtls10MAC) MAC(digestBuf, seq, header, data, extra []byte) []byte {
 		s.h.Write(extra)
 	}
 	return res
-}*/
+}
 
 // tls10MAC implements the TLS 1.0 MAC function. RFC 2246, Section 6.2.3.
 func tls10MAC(h hash.Hash, out, seq, header, data, extra []byte) []byte {
