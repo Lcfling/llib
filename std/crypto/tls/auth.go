@@ -247,6 +247,25 @@ func selectSignatureScheme(vers uint16, c *Certificate, peerAlgs []SignatureSche
 	}
 	return 0, errors.New("tls: peer doesn't support any of the certificate's signature algorithms")
 }
+func selectSignatureSchemeGM(vers uint16, c *Certificate, peerAlgs []SignatureScheme) (SignatureScheme, error) {
+	supportedAlgs := signatureSchemesForCertificate(vers, c)
+	if len(supportedAlgs) == 0 {
+		return 0, unsupportedCertificateError(c)
+	}
+	if len(peerAlgs) == 0 && vers == VersionTLS12 {
+		// For TLS 1.2, if the client didn't send signature_algorithms then we
+		// can assume that it supports SHA1. See RFC 5246, Section 7.4.1.4.1.
+		peerAlgs = []SignatureScheme{PKCS1WithSHA1, ECDSAWithSHA1}
+	}
+	// Pick signature scheme in the peer's preference order, as our
+	// preference order is not configurable.
+	for _, preferredAlg := range peerAlgs {
+		if isSupportedSignatureAlgorithm(preferredAlg, supportedAlgs) {
+			return preferredAlg, nil
+		}
+	}
+	return 0, errors.New("tls: peer doesn't support any of the certificate's signature algorithms")
+}
 
 // unsupportedCertificateError returns a helpful error for certificates with
 // an unsupported private key.
@@ -286,4 +305,56 @@ func unsupportedCertificateError(cert *Certificate) error {
 	}
 
 	return fmt.Errorf("tls: internal error: unsupported key (%T)", cert.PrivateKey)
+}
+
+// pickSignatureAlgorithm selects a signature algorithm that is compatible with
+// the given public key and the list of algorithms from the peer and this side.
+// The lists of signature algorithms (peerSigAlgs and ourSigAlgs) are ignored
+// for tlsVersion < VersionTLS12.
+//
+// The returned SignatureScheme codepoint is only meaningful for TLS 1.2,
+// previous TLS versions have a fixed hash function.
+func pickSignatureAlgorithm(pubkey crypto.PublicKey, peerSigAlgs, ourSigAlgs []SignatureScheme, tlsVersion uint16) (sigAlg SignatureScheme, sigType uint8, hashFunc crypto.Hash, err error) {
+	if tlsVersion < VersionTLS12 || len(peerSigAlgs) == 0 {
+		// For TLS 1.1 and before, the signature algorithm could not be
+		// negotiated and the hash is fixed based on the signature type.
+		// For TLS 1.2, if the client didn't send signature_algorithms
+		// extension then we can assume that it supports SHA1. See
+		// https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1
+		switch pubkey.(type) {
+		case *rsa.PublicKey:
+			if tlsVersion < VersionTLS12 {
+				return 0, signaturePKCS1v15, crypto.MD5SHA1, nil
+			} else {
+				return PKCS1WithSHA1, signaturePKCS1v15, crypto.SHA1, nil
+			}
+		case *ecdsa.PublicKey:
+			return ECDSAWithSHA1, signatureECDSA, crypto.SHA1, nil
+		default:
+			return 0, 0, 0, fmt.Errorf("tls: unsupported public key: %T", pubkey)
+		}
+	}
+	for _, sigAlg := range peerSigAlgs {
+		if !isSupportedSignatureAlgorithm(sigAlg, ourSigAlgs) {
+			continue
+		}
+		hashAlg, err := lookupTLSHash(sigAlg)
+		if err != nil {
+			panic("tls: supported signature algorithm has an unknown hash function")
+		}
+		sigType := signatureFromSignatureScheme(sigAlg)
+		switch pubkey.(type) {
+		case *rsa.PublicKey:
+			if sigType == signaturePKCS1v15 || sigType == signatureRSAPSS {
+				return sigAlg, sigType, hashAlg, nil
+			}
+		case *ecdsa.PublicKey:
+			if sigType == signatureECDSA {
+				return sigAlg, sigType, hashAlg, nil
+			}
+		default:
+			return 0, 0, 0, fmt.Errorf("tls: unsupported public key: %T", pubkey)
+		}
+	}
+	return 0, 0, 0, errors.New("tls: peer doesn't support any common signature algorithms")
 }

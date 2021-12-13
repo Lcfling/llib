@@ -101,17 +101,28 @@ func (c *Conn) serverHandshake() error {
 				clientHello: c.clientHello,
 			}
 			c.hs13 = hs
+
 		}
 		return hs.handshake()
 	}
 
 	hs := c.hs
 	if hs == nil {
-		hs = &serverHandshakeState{
-			c:           c,
-			clientHello: c.clientHello,
+		if c.config.GMSupport != nil {
+			hs := &serverHandshakeStateGM{
+				c:           c,
+				clientHello: c.clientHello,
+			}
+			c.hsGM = hs
+			return hs.handshake()
+		} else {
+			hs = &serverHandshakeState{
+				c:           c,
+				clientHello: c.clientHello,
+			}
+			c.hs = hs
 		}
-		c.hs = hs
+
 	}
 	return hs.handshake()
 }

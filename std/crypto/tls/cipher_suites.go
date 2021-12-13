@@ -258,6 +258,10 @@ func macSHA256(key []byte) hash.Hash {
 	return hmac.New(sha256.New, key)
 }
 
+type macFunction interface {
+	Size() int
+	MAC(digestBuf, seq, header, data, extra []byte) []byte
+}
 type aead interface {
 	cipher.AEAD
 
@@ -379,6 +383,19 @@ func aeadChaCha20Poly1305(key, nonceMask []byte) aead {
 	return ret
 }
 
+type ssl30MAC struct {
+	h   hash.Hash
+	key []byte
+}
+
+func (s ssl30MAC) Size() int {
+	return s.h.Size()
+}
+
+var ssl30Pad1 = [48]byte{0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36}
+
+var ssl30Pad2 = [48]byte{0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c}
+
 type constantTimeHash interface {
 	hash.Hash
 	ConstantTimeSum(b []byte) []byte
@@ -401,6 +418,30 @@ func newConstantTimeHash(h func() hash.Hash) func() hash.Hash {
 		return &cthWrapper{h().(constantTimeHash)}
 	}
 }
+
+// tls10MAC implements the TLS 1.0 MAC function. RFC 2246, section 6.2.3.
+/*type GMtls10MAC struct {
+	h hash.Hash
+}
+
+func (s GMtls10MAC) Size() int {
+	return s.h.Size()
+}
+
+// MAC is guaranteed to take constant time, as long as
+// len(seq)+len(header)+len(data)+len(extra) is constant. extra is not fed into
+// the MAC, but is only provided to make the timing profile constant.
+func (s GMtls10MAC) MAC(digestBuf, seq, header, data, extra []byte) []byte {
+	s.h.Reset()
+	s.h.Write(seq)
+	s.h.Write(header)
+	s.h.Write(data)
+	res := s.h.Sum(digestBuf[:0])
+	if extra != nil {
+		s.h.Write(extra)
+	}
+	return res
+}*/
 
 // tls10MAC implements the TLS 1.0 MAC function. RFC 2246, Section 6.2.3.
 func tls10MAC(h hash.Hash, out, seq, header, data, extra []byte) []byte {

@@ -162,6 +162,7 @@ type Conn struct {
 	serverHello          *serverHelloMsg
 	hs                   *serverHandshakeState
 	hs13                 *serverHandshakeStateTLS13
+	hsGM                 *serverHandshakeStateGM
 	certMsg              *certificateMsgTLS13
 	certMsgVerified      []bool
 

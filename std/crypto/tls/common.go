@@ -498,6 +498,8 @@ const (
 // modified. A Config may be reused; the tls package will also not
 // modify it.
 type Config struct {
+	//if not nil, will support GMT0024
+	GMSupport *GMSupport
 	// Rand provides the source of entropy for nonces and RSA blinding.
 	// If Rand is nil, TLS uses the cryptographic random reader in package
 	// crypto/rand.
@@ -1221,6 +1223,34 @@ func (chi *ClientHelloInfo) SupportsCertificate(c *Certificate) error {
 // describing the reason for the incompatibility.
 func (cri *CertificateRequestInfo) SupportsCertificate(c *Certificate) error {
 	if _, err := selectSignatureScheme(cri.Version, c, cri.SignatureSchemes); err != nil {
+		return err
+	}
+
+	if len(cri.AcceptableCAs) == 0 {
+		return nil
+	}
+
+	for j, cert := range c.Certificate {
+		x509Cert := c.Leaf
+		// Parse the certificate if this isn't the leaf node, or if
+		// chain.Leaf was nil.
+		if j != 0 || x509Cert == nil {
+			var err error
+			if x509Cert, err = x509.ParseCertificate(cert); err != nil {
+				return fmt.Errorf("failed to parse certificate #%d in the chain: %w", j, err)
+			}
+		}
+
+		for _, ca := range cri.AcceptableCAs {
+			if bytes.Equal(x509Cert.RawIssuer, ca) {
+				return nil
+			}
+		}
+	}
+	return errors.New("chain is not signed by an acceptable CA")
+}
+func (cri *CertificateRequestInfo) SupportsCertificateGM(c *Certificate) error {
+	if _, err := selectSignatureSchemeGM(cri.Version, c, cri.SignatureSchemes); err != nil {
 		return err
 	}
 

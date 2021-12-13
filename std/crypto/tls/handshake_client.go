@@ -142,8 +142,15 @@ func (c *Conn) clientHandshake() (err error) {
 	// This may be a renegotiation handshake, in which case some fields
 	// need to be reset.
 	c.didResume = false
-
-	hello, ecdheParams, err := c.makeClientHello()
+	var hello *clientHelloMsg
+	var ecdheParams ecdheParameters
+	if c.config.GMSupport != nil {
+		c.vers = VersionGMSSL
+		hello, err = c.makeClientHelloGM()
+	} else {
+		hello, ecdheParams, err = c.makeClientHello()
+	}
+	//hello, ecdheParams, err := c.makeClientHello()
 	if err != nil {
 		return err
 	}
@@ -209,25 +216,43 @@ func (c *Conn) clientHandshake() (err error) {
 		// In TLS 1.3, session tickets are delivered after the handshake.
 		return hs.handshake()
 	}
+	if c.config.GMSupport != nil {
+		hs := &clientHandshakeStateGM{
+			c:       c,
+			hello:   hello,
+			session: session,
+		}
+		if err := hs.handshake(); err != nil {
+			return err
+		}
 
-	hs := &clientHandshakeState{
-		c:           c,
-		serverHello: serverHello,
-		hello:       hello,
-		session:     session,
+		// If we had a successful handshake and hs.session is different from
+		// the one already cached - cache a new one.
+		if cacheKey != "" && hs.session != nil && session != hs.session {
+			c.config.ClientSessionCache.Put(cacheKey, hs.session)
+		}
+
+		return nil
+	} else {
+		hs := &clientHandshakeState{
+			c:           c,
+			serverHello: serverHello,
+			hello:       hello,
+			session:     session,
+		}
+		if err := hs.handshake(); err != nil {
+			return err
+		}
+
+		// If we had a successful handshake and hs.session is different from
+		// the one already cached - cache a new one.
+		if cacheKey != "" && hs.session != nil && session != hs.session {
+			c.config.ClientSessionCache.Put(cacheKey, hs.session)
+		}
+
+		return nil
 	}
 
-	if err := hs.handshake(); err != nil {
-		return err
-	}
-
-	// If we had a successful handshake and hs.session is different from
-	// the one already cached - cache a new one.
-	if cacheKey != "" && hs.session != nil && session != hs.session {
-		c.config.ClientSessionCache.Put(cacheKey, hs.session)
-	}
-
-	return nil
 }
 
 func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
