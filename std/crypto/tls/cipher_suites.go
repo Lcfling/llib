@@ -255,7 +255,7 @@ func macSHA1(key []byte) macFunction {
 
 // macSHA256 returns a SHA-256 based MAC. This is only supported in TLS 1.2 and
 // is currently only used in disabled-by-default cipher suites.
-func macSHA256(version uint16, key []byte) macFunction {
+func macSHA256(key []byte) macFunction {
 	return GMtls10MAC{hmac.New(sha256.New, key)}
 }
 
