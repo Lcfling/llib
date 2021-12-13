@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"github.com/Lcfling/cryptogm/sm2"
 	"github.com/Lcfling/cryptogm/x509"
-	"hash"
 	"io"
 	"sync/atomic"
 )
